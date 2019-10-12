@@ -1,5 +1,8 @@
+// GPL v3
+// Dragos-Ronald Rugescu
+//
 // Prototype
-// A star algorithm class - matrix
+// A star algorithm class - matrix and graph
 //   Variables:
 //        _Object origin
 //        _Object destination
@@ -14,6 +17,7 @@
 //
 //   origin, destination = std::pair<int,int>
 
+#include <array>
 #include <queue>
 #include <vector>
 #include <utility>
@@ -21,15 +25,35 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+//#include <boost/numeric/ublas/matrix.hpp>
+//#include <boost/numeric/ublas/io.hpp>
+#include <Eigen/Dense>
+
+using namespace Eigen;
 
 #define MANHATTAN_DISTANCE  1
 #define EUCLIDEAN_DISTANCE  2
 
-using namespace std;
+#define INITIAL_SIZE      100
+
+//using namespace boost::numeric::ublas;
 
 // Defs and structs
 
-typedef pair<int,int> coords;
+typedef std::pair<int,int> coords;
+
+// Print out coords
+
+void printCoords(coords p) {
+  std::cout << "Point : { " << p.first << ", " << p.second << "}" << std::endl;
+}
+/*template <>
+std::ostream& coords::operator<< (std::ostream &out) {
+    out << "Pair {" << this->first << "," << this->second << std::endl;
+    return out;
+}*/
+
+// Point class
 
 class point {
     public:
@@ -45,14 +69,28 @@ class point {
         pos.second = b;
       }
 
-      void print() { cout << "Coords: " << pos.first << "," << pos.second << ", f = "
-                     << f << ", g = " << g << ", h = " << h << endl; }
+      void print() { std::cout << "Coords: " << pos.first << "," << pos.second << ", f = "
+                     << f << ", g = " << g << ", h = " << h << std::endl; }
 
       bool operator== (const point& b) {
         return ((this->pos.first == b.pos.first) && (this->pos.second == b.pos.second));
       }
 
+      bool operator< (const point& b) {
+        return (this->f < b.f);
+      }
+
+      friend std::ostream& operator<< (std::ostream &out, const point& p) {
+        out << "Point {" << p.pos.first << "," << p.pos.second << "}, f = "
+            << p.f << ", g = " << p.g << ", h = " << p.h << std::endl;
+        return out;
+      }
+
 };
+
+bool operator< (const point&a, const point& b) {
+  return (a.f < b.f);
+}
 
 // Interface
 
@@ -95,49 +133,53 @@ float Heuristic::distanceOp(const point p1, const point p2) {
 
 class aStar {
     private:
-        point origin;
-        point destination;
 
-        queue<point> open, closed;
+        uint16_t sizeM, sizeN;
 
-        vector<point> path;
+        point origin, destination;
+
+        std::priority_queue<point> open, closed;
+
+        //matrix<float> m(int, int);
+        MatrixXd m;
+
+        std::vector<point> path;
 
     public:
+        // Constructor versions
         aStar();
+        aStar(int size);
         aStar(const point origin, const point destination);
+        aStar(int size, const point origin, const point destination);
+        aStar(int sizeM, int sizeN, const point origin, const point destination);
         aStar(const point* origin, const point* destination);
+        aStar(int size, const point* origin, const point* destination);
+        aStar(int sizeM, int sizeN, const point* origin, const point* destination);
 
+        // Origin
         void setOrigin(const point origin);
         auto const getOrigin() { return origin; }
 
+        // Destination
         void setDestination(const point destination);
         auto const getDestination() { return destination; }
 
+        // Size of internal matrix
+        void setMapSize(int size);
+        void setMapSize(int sizeM, int sizeN);
+        coords getMapSize();
+
+        // Heuristic
         void setHeuristic();
+
+        // Algorithm
         int runAlgorithm();
 
-        vector<point> returnPath();
+        // Result
+        std::vector<point> returnPath();
 };
 
 // Implementation
-
-queue<point> sortQueue(queue<point> in) {
-  vector<point> v;
-  auto inp = in;
-
-  while (inp.empty() == false) {
-    v.push_back(inp.front());
-    inp.pop();
-  }
-
-  sort(v.begin(), v.end(), [](const point &a, const point &b) { return a.f < b.f; });
-
-  for (int i = 0; i < inp.size(); i++) {
-    inp.push(v[i]);
-  }
-
-  return inp;
-}
 
 aStar::aStar() {
     point o(0,0), d(0,0);
@@ -146,42 +188,115 @@ aStar::aStar() {
 
     origin = o;
     destination = d;
+
+    // Initialize map with basic size
+    m.resize(INITIAL_SIZE, INITIAL_SIZE);
+}
+
+aStar::aStar(int size) {
+    point o(0,0), d(0,0);
+
+    o.f = o.g = o.h = d.f = d.g = d.h = 0.0f;
+
+    origin = o;
+    destination = d;
+
+    // Initialize map with basic size
+    m.resize(size, size);
+}
+
+aStar::aStar(int size, const point origin, const point destination) {
+    // Initialize origin
+    aStar::origin = origin;
+    aStar::destination = destination;
+
+    // Initialize map with basic size
+    m.resize(size, size);
+}
+
+aStar::aStar(int sizeM, int sizeN, const point origin, const point destination) {
+    // Initialize origin
+    aStar::origin = origin;
+    aStar::destination = destination;
+
+    // Initialize map with basic size
+    m.resize(sizeM, sizeN);
 }
 
 aStar::aStar(const point origin, const point destination) {
     aStar::origin = origin;
     aStar::destination = destination;
+
+    m.resize(INITIAL_SIZE, INITIAL_SIZE);
 }
 
 aStar::aStar(const point* origin, const point* destination) {
     aStar::origin = *origin;
     aStar::destination = *destination;
+
+    m.resize(INITIAL_SIZE, INITIAL_SIZE);
 }
+
+aStar::aStar(int size, const point* origin, const point* destination) {
+    // Initialize origin
+    aStar::origin = *origin;
+    aStar::destination = *destination;
+
+    // Initialize map with basic size
+    m.resize(size, size);
+}
+
+aStar::aStar(int sizeM, int sizeN, const point* origin, const point* destination) {
+    // Initialize origin
+    aStar::origin = *origin;
+    aStar::destination = *destination;
+
+    // Initialize map with basic size
+    m.resize(sizeM, sizeN);
+}
+
+// Map size
+
+void aStar::setMapSize(int size) {
+  this->sizeM = this->sizeN = size;
+  this->m.resize(size, size);
+}
+
+void aStar::setMapSize(int sizeM, int sizeN) {
+  this->sizeM = sizeM;
+  this->sizeN = sizeN;
+  this->m.resize(sizeM, sizeN);
+}
+
+coords aStar::getMapSize() { return *(new coords(sizeN, sizeM)); }
+
+// Heuristic
 
 void aStar::setHeuristic() {};
 
-vector<point> aStar::returnPath() {
-    auto path = new vector<point>();
+// Result
+
+std::vector<point> aStar::returnPath() {
+    auto path = new std::vector<point>();
     return *path;
 }
 
+// Algorithm
+
 int aStar::runAlgorithm() {
     // Let initial lists be empty
-    queue<point> emptyO, emptyC;
+    std::priority_queue<point> emptyO, emptyC;
     swap(open, emptyO);
     swap(open, emptyC);
 
-    // Put start node on open list
-    open.emplace(origin);
+    // Put start node on open list, it also sorts the queue
+    open.push(origin);
 
     // Loop until you find the end
     while(!open.empty()) {
 
-      // Get the current node - least f
-      open = sortQueue(open);
-
       // Remove from open
-      auto p = open.back();
+      auto p = open.top();
       p.print();
       open.pop();
 
@@ -190,7 +305,7 @@ int aStar::runAlgorithm() {
 
       // If goal, return
       if (p == destination) {
-        cout << "Arrived at destination." << endl;
+        std::cout << "Arrived at destination." << std::endl;
         return EXIT_SUCCESS;
       }
 
