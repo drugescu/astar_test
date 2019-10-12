@@ -7,9 +7,11 @@
 using namespace std;
 
 int main() {
-    aStar a = aStar(100, new point(0,0), new point(0,0));
+    aStar a = aStar(100, new point(0,0), new point(6,6));
 
     a.setMapSize(100);
+
+    std::cout << "Map size: ";
 
     auto m = a.getMapSize();
 

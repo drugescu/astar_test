@@ -25,8 +25,6 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
-//#include <boost/numeric/ublas/matrix.hpp>
-//#include <boost/numeric/ublas/io.hpp>
 #include <Eigen/Dense>
 
 using namespace Eigen;
@@ -36,22 +34,21 @@ using namespace Eigen;
 
 #define INITIAL_SIZE      100
 
-//using namespace boost::numeric::ublas;
+#define COST                1
 
 // Defs and structs
 
 typedef std::pair<int,int> coords;
 
+enum Direction { NORTH = 0, SOUTH, EAST, WEST, NORTH_EAST, SOUTH_EAST, NORTH_WEST, SOUTH_WEST };
+
+constexpr std::initializer_list<Direction> dirList = { NORTH, SOUTH, EAST, WEST, NORTH_EAST, SOUTH_EAST, NORTH_WEST, SOUTH_WEST };
+
 // Print out coords
 
 void printCoords(coords p) {
-  std::cout << "Point : { " << p.first << ", " << p.second << "}" << std::endl;
+  std::cout << "Point : { " << p.first << ", " << p.second << " }" << std::endl;
 }
-/*template <>
-std::ostream& coords::operator<< (std::ostream &out) {
-    out << "Pair {" << this->first << "," << this->second << std::endl;
-    return out;
-}*/
 
 // Point class
 
@@ -67,6 +64,15 @@ class point {
       point(int a, int b) {
         pos.first = a;
         pos.second = b;
+      }
+
+      point(point parent, int deltaX, int deltaY) {
+        this->pos.first  = parent.pos.first + deltaX;
+        this->pos.second = parent.pos.second + deltaY;
+
+        this->f = parent.f;
+        this->g = parent.g;
+        this->h = parent.h;
       }
 
       void print() { std::cout << "Coords: " << pos.first << "," << pos.second << ", f = "
@@ -85,7 +91,6 @@ class point {
             << p.f << ", g = " << p.g << ", h = " << p.h << std::endl;
         return out;
       }
-
 };
 
 bool operator< (const point&a, const point& b) {
@@ -140,7 +145,6 @@ class aStar {
 
         std::priority_queue<point> open, closed;
 
-        //matrix<float> m(int, int);
         MatrixXd m;
 
         std::vector<point> path;
@@ -180,6 +184,8 @@ class aStar {
 };
 
 // Implementation
+
+#pragma region aStar_constructors
 
 aStar::aStar() {
     point o(0,0), d(0,0);
@@ -255,6 +261,8 @@ aStar::aStar(int sizeM, int sizeN, const point* origin, const point* destination
     m.resize(sizeM, sizeN);
 }
 
+#pragma endregion
+
 // Map size
 
 void aStar::setMapSize(int size) {
@@ -282,6 +290,32 @@ std::vector<point> aStar::returnPath() {
 }
 
 // Algorithm
+
+point getAdjacent(point p, int dir) {
+  switch (dir)
+  {
+    case (NORTH)      : return point(p, -COST,     0);
+    case (NORTH_WEST) : return point(p, -COST, -COST);
+    case (NORTH_EAST) : return point(p, -COST,  COST);
+    case (SOUTH)      : return point(p,  COST,     0);
+    case (SOUTH_WEST) : return point(p,  COST, -COST);
+    case (SOUTH_EAST) : return point(p,  COST,  COST);
+    case (WEST)       : return point(p,     0, -COST);
+    case (EAST)       : return point(p,     0,  COST);
+
+    default           : return point();
+  }
+}
+
+std::vector<point> generateChildren(point p) {
+    std::vector<point> children;
+
+    for (auto DIR : dirList) {
+      children.push_back(getAdjacent(p, DIR));
+    }
+
+    return children;
+}
 
 int aStar::runAlgorithm() {
     // Let initial lists be empty
@@ -318,6 +352,9 @@ int aStar::runAlgorithm() {
         //   child.f = sum
         // Child is already in open, and g huigher that open , continue
         // Add child to open listl
+      for (auto child : generateChildren(p)) {
+        std::cout << "Generated child : " << child;
+      }
     }
 
     return EXIT_FAILURE;
