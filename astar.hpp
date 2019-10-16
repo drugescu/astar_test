@@ -36,7 +36,14 @@ using namespace Eigen;
 
 #define COST                1
 
+// std::find - O(n)
+#define contains(vec, item)     (std::find(vec.begin(), vec.end(), item)) != vec.end()
+
 // Defs and structs
+
+class point;
+
+typedef std::vector<point> aStarList;
 
 typedef std::pair<int,int> coords;
 
@@ -82,6 +89,11 @@ class point {
         return ((this->pos.first == b.pos.first) && (this->pos.second == b.pos.second));
       }
 
+      bool operator!= (const point& b) {
+        return ((this->pos.first != b.pos.first) || (this->pos.second != b.pos.second));
+      }
+
+      // Used for std::sort and other algorithms
       bool operator< (const point& b) {
         return (this->f < b.f);
       }
@@ -90,6 +102,12 @@ class point {
         out << "Point {" << p.pos.first << "," << p.pos.second << "}, f = "
             << p.f << ", g = " << p.g << ", h = " << p.h << std::endl;
         return out;
+      }
+
+      void setScores(int g, int h) {
+        this->g = g;
+        this->h = h;
+        this->f = g + h;
       }
 };
 
@@ -103,7 +121,7 @@ class Heuristic {
     private:
         int internalHeuristic = EUCLIDEAN_DISTANCE;
     public:
-        Heuristic();
+        Heuristic() {};
 
         void setHeuristic(int num);
         int getHeuristic();
@@ -143,7 +161,9 @@ class aStar {
 
         point origin, destination;
 
-        std::priority_queue<point> open, closed;
+        aStarList open, closed;
+
+        Heuristic h;
 
         MatrixXd m;
 
@@ -175,6 +195,7 @@ class aStar {
 
         // Heuristic
         void setHeuristic();
+        Heuristic& getHeuristic() { return h; }
 
         // Algorithm
         int runAlgorithm();
@@ -310,6 +331,7 @@ point getAdjacent(point p, int dir) {
 std::vector<point> generateChildren(point p) {
     std::vector<point> children;
 
+    // Check map and see if children are all valid - paths exist
     for (auto DIR : dirList) {
       children.push_back(getAdjacent(p, DIR));
     }
@@ -319,23 +341,26 @@ std::vector<point> generateChildren(point p) {
 
 int aStar::runAlgorithm() {
     // Let initial lists be empty
-    std::priority_queue<point> emptyO, emptyC;
+    aStarList emptyO, emptyC;
     swap(open, emptyO);
     swap(open, emptyC);
 
-    // Put start node on open list, it also sorts the queue
-    open.push(origin);
+    // Put start node on open list - O(1)
+    open.push_back(origin);
 
     // Loop until you find the end
     while(!open.empty()) {
 
-      // Remove from open
-      auto p = open.top();
-      p.print();
-      open.pop();
+      // Sort the list - (N*logN)
+      std::sort(open.begin(), open.end());
 
-      // Add to closed
-      closed.emplace(p);
+      // Remove from open - O(1)
+      auto p = open.front();
+      p.print();
+      open.erase(open.begin()); // O(1) best case
+
+      // Add to closed - O(1)
+      closed.push_back(p);
 
       // If goal, return
       if (p == destination) {
@@ -345,15 +370,29 @@ int aStar::runAlgorithm() {
 
       // Generate children
       // For each child
+      for (auto child : generateChildren(p)) {
+
+        std::cout << "Generated child : " << child;
+
         // If in closed list, continue
+        if (contains(closed, child))
+          continue;
+
+        // Update g and h - don't forget to look at the map for cost
+        // Replace basic COST with COST*map(parent_height-child_height) unless
+        //   child has height - 1 in which case you cannot use the child...
+        //   but this will be handles in child legality step above
+        //   calculateCost fnction required here.
         // Create f, g, h
         //   child.g = curentnode.g + distance
         //   child.h = heuristic to end
         //   child.f = sum
-        // Child is already in open, and g huigher that open , continue
-        // Add child to open listl
-      for (auto child : generateChildren(p)) {
-        std::cout << "Generated child : " << child;
+        child.setScores(p.g + COST,
+                        getHeuristic().distanceOp(child, getDestination()));
+
+        std::cout << "Changed child : " << child;
+          // Child is already in open, and g huigher that open , continue
+          // Add child to open listl
       }
     }
 
