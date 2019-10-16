@@ -391,8 +391,9 @@ int aStar::runAlgorithm() {
                         getHeuristic().distanceOp(child, getDestination()));
 
         std::cout << "Changed child : " << child;
-          // Child is already in open, and g huigher that open , continue
-          // Add child to open listl
+        // Child is already in open, and g higher that open, continue
+        // Add child to open list
+        open.push_back(child);
       }
     }
 
