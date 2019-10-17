@@ -57,33 +57,46 @@ void printCoords(coords p) {
   std::cout << "Point : { " << p.first << ", " << p.second << " }" << std::endl;
 }
 
+ std::ostream& operator<< (std::ostream &out, const coords& p) {
+  out << "Coords {" << p.first << "," << p.second << "}" << std::endl;
+  return out;
+}
+
 // Point class
 
 class point {
     public:
       coords pos;
-      float f;
-      float g;
-      float h;
+      float f = 0.0f;
+      float g = 0.0f;
+      float h = 0.0f;
 
-      point() {};
+      coords parent = coords(0,0);
+
+      point() { };
 
       point(int a, int b) {
         pos.first = a;
         pos.second = b;
       }
 
-      point(point parent, int deltaX, int deltaY) {
-        this->pos.first  = parent.pos.first + deltaX;
-        this->pos.second = parent.pos.second + deltaY;
+      point(point p, int deltaX, int deltaY) {
+        pos.first  = p.pos.first + deltaX;
+        pos.second = p.pos.second + deltaY;
 
-        this->f = parent.f;
-        this->g = parent.g;
-        this->h = parent.h;
+        f = p.f;
+        g = p.g;
+        h = p.h;
+
+        parent = p.pos;
       }
 
-      void print() { std::cout << "Coords: " << pos.first << "," << pos.second << ", f = "
-                     << f << ", g = " << g << ", h = " << h << std::endl; }
+      void print() {
+        std::cout << "Coords: " << pos.first << "," << pos.second << ", f = "
+                     << f << ", g = " << g << ", h = " << h;
+
+        std::cout << ", Parent = {" << parent.first << "," << parent.second << "}" << std::endl;
+      }
 
       bool operator== (const point& b) {
         return ((this->pos.first == b.pos.first) && (this->pos.second == b.pos.second));
@@ -98,9 +111,19 @@ class point {
         return (this->f < b.f);
       }
 
+      point& operator= (const point& p) {
+        pos.first = p.pos.first; pos.second = p.pos.first;
+        f = p.f; g = g; h = p.h;
+
+        return *this;
+      }
+
       friend std::ostream& operator<< (std::ostream &out, const point& p) {
         out << "Point {" << p.pos.first << "," << p.pos.second << "}, f = "
-            << p.f << ", g = " << p.g << ", h = " << p.h << std::endl;
+            << p.f << ", g = " << p.g << ", h = " << p.h;
+
+        out << ", Parent = {" << p.parent.first << "," << p.parent.second << "}" << std::endl;
+
         return out;
       }
 
@@ -167,7 +190,7 @@ class aStar {
 
         MatrixXd m;
 
-        std::vector<point> path;
+        point path_start;
 
     public:
         // Constructor versions
@@ -201,7 +224,7 @@ class aStar {
         int runAlgorithm();
 
         // Result
-        std::vector<point> returnPath();
+        std::vector<coords> returnPath();
 };
 
 // Implementation
@@ -305,9 +328,17 @@ void aStar::setHeuristic() {};
 
 // Result
 
-std::vector<point> aStar::returnPath() {
-    auto path = new std::vector<point>();
-    return *path;
+std::vector<coords> aStar::returnPath() {
+
+    auto path = std::vector<coords>();
+
+    path.push_back(path_start.pos);
+    //while (current_node != nullptr) {
+      //path.push_back(*current_node);
+      //current_node = &(*current_node->parent);
+    //}
+
+    return path;
 }
 
 // Algorithm
@@ -356,7 +387,7 @@ int aStar::runAlgorithm() {
 
       // Remove from open - O(1)
       auto p = open.front();
-      p.print();
+      std::cout << "Removing best point : " << p;
       open.erase(open.begin()); // O(1) best case
 
       // Add to closed - O(1)
@@ -365,6 +396,7 @@ int aStar::runAlgorithm() {
       // If goal, return
       if (p == destination) {
         std::cout << "Arrived at destination." << std::endl;
+        path_start = p;
         return EXIT_SUCCESS;
       }
 

@@ -23,5 +23,9 @@ int main() {
 
     std::cout << "A* finalized." << std::endl;
 
+    for (auto n : a.returnPath()) {
+      std::cout << "Path point : " << n << std::endl;
+    }
+
     return 0;
 };
