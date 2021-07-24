@@ -37,7 +37,7 @@ void printCoords(coords p) {
   std::cout << "Point : { " << p.first << ", " << p.second << " }" << std::endl;
 }
 
- std::ostream& operator<< (std::ostream& out, const coords& p) {
+std::ostream& operator<< (std::ostream& out, const coords& p) {
   out << "Coords {" << p.first << "," << p.second << "}" << std::endl;
   return out;
 }
@@ -221,6 +221,11 @@ class aStar {
         void setHeuristic();
         Heuristic& getHeuristic() { return h; }
 
+        // Collision map
+        void setInaccessible(const point p);
+        void setInaccessible(const coords& c);
+        void setInaccessible(int x, int y);
+
         // Algorithm
         std::vector<point> generateChildren(point p);
         point getAdjacent(point p, int dir);
@@ -229,6 +234,7 @@ class aStar {
 
         // Result
         std::vector<coords> returnPath();
+        void printMap();
 };
 
 // Implementation
@@ -311,6 +317,8 @@ aStar::aStar(int sizeM, int sizeN, const point* origin, const point* destination
 
 #pragma endregion
 
+#pragma region MapSize
+
 // Map size
 
 void aStar::setMapSize(int size) {
@@ -326,9 +334,17 @@ void aStar::setMapSize(int sizeM, int sizeN) {
 
 coords aStar::getMapSize() { return *(new coords(sizeN, sizeM)); }
 
+#pragma endregion
+
+#pragma region Heuristics
+
 // Heuristic
 
 void aStar::setHeuristic() {};
+
+#pragma endregion
+
+#pragma region Results and Validity
 
 // Result
 
@@ -340,6 +356,9 @@ bool aStar::isValid(const coords& p) {
     return false;
 
   if (p.first < 0 || p.second < 0)
+    return false;
+
+  if (this->m(p.first, p.second) == INACCESSIBLE)
     return false;
 
   return true;
@@ -373,6 +392,29 @@ std::vector<coords> aStar::returnPath() {
 
     return path;
 }
+
+#pragma endregion
+
+#pragma region Collision Map
+
+// Collision map
+void aStar::setInaccessible(const point p) {
+  aStar::setInaccessible(p.pos);
+}
+
+void aStar::setInaccessible(const coords& c) {
+  this->m(c.first, c.second) = INACCESSIBLE;
+  debug << "Set inaccessible location @" << c;
+}
+
+void aStar::setInaccessible(const int x, const int y) {
+  coords c = coords(x, y);
+  setInaccessible(c);
+}
+
+#pragma endregion
+
+#pragma region Algorithm
 
 // Algorithm
 
@@ -465,3 +507,36 @@ int aStar::runAlgorithm() {
 
     return EXIT_FAILURE;
 }
+
+void aStar::printMap() {
+  char p;
+  int val;
+  coords c;
+
+  for (int i = 0; i < this->sizeM; i++) {
+    for (int j = 0; j < this->sizeN; j++) {
+      val = this->m(i,j);
+      c = coords(i,j);
+
+      switch (val)
+      {
+      case INACCESSIBLE:
+        p = '#';
+        break;
+      
+      default:
+        p = '.';
+        break;
+      }
+
+      if (origin.pos == c)
+        std::cout << "O";
+      else if (destination.pos == c)
+        std::cout << "X";
+      else
+        std::cout << p;
+    }
+    std::cout << std::endl;
+  }
+}
+#pragma endregion

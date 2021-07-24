@@ -6,10 +6,11 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 #include <limits>
 
 #undef DEBUG_FLAG
+#define DEBUG_FLAG
 
 #ifdef DEBUG_FLAG
 #define debug std::cout
@@ -25,6 +26,7 @@
 
 #define COST                1
 #define INEXISTENT         -1
+#define INACCESSIBLE       -1
 
 #define IDENTITY            1
 #define SQUARED             2

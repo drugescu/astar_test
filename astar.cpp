@@ -7,15 +7,19 @@
 using namespace std;
 
 int main() {
-    aStar a = aStar(100, new point(0,0), new point(6,6));
+    aStar a = aStar(10, new point(0,0), new point(6,6));
 
-    a.setMapSize(100);
+    a.setMapSize(10); // Redundant but to demonstrate
 
     std::cout << "Map size: ";
 
     auto m = a.getMapSize();
 
     printCoords(m);
+
+    a.setInaccessible(1, 1);
+
+    a.printMap();
 
     std::cout << "A* running..." << std::endl;
 
