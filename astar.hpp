@@ -476,7 +476,7 @@ int aStar::runAlgorithm() {
       std::sort(open.begin(), open.end());
       debug << "Sorted list: " << std::endl;
       for (auto i : open)
-        std::cout << i;
+        debug << i;
 
       // Remove from open - O(1)
       auto p = open.front();
@@ -520,7 +520,7 @@ int aStar::runAlgorithm() {
 
       debug << "Open list: " << std::endl;
       for (auto i : open)
-        std::cout << i;
+        debug << i;
     }
 
     return EXIT_FAILURE;
