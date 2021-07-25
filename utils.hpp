@@ -34,3 +34,9 @@
 #define IDENTITY            1
 #define SQUARED             2
 #define MINIMUM             3
+
+#define MIN_WEIGHT          1.0f
+#define EIGTH_WEIGHT        30.63f
+#define QUARTER_WEIGHT      61.25f
+#define HALF_WEIGHT         122.5f
+#define MAX_WEIGHT          255.0f

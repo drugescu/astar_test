@@ -15,12 +15,18 @@ int main() {
     auto m = a.getMapSize();
     printCoords(m);
 
+    // Edit collision map
     a.setInaccessible(1, 1);
     a.setInaccessible(2, 1);
     a.setInaccessible(1, 2);
     a.setInaccessible(1, 3);
     a.setInaccessible(3, 1);
     a.setInaccessible(5, 5);
+    a.setInaccessible(6, 5);
+
+    // Experiment with these
+    // a.setWeight(point(1, 2), MAX_WEIGHT);
+    // a.setWeight(point(1, 2), MIN_WEIGHT);
 
     std::cout << "Printing map: " << std::endl;
     a.printMap();

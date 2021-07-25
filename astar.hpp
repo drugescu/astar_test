@@ -230,6 +230,9 @@ class aStar {
         void setInaccessible(const point p);
         void setInaccessible(const coords& c);
         void setInaccessible(int x, int y);
+        void setWeight(const point p, float w);
+        void setWeight(const coords& c, float w);
+        void setWeight(const int x, const int y, float w);
 
         // Algorithm
         std::vector<point> generateChildren(point p);
@@ -413,6 +416,20 @@ void aStar::setInaccessible(const coords& c) {
   debug << "Set inaccessible location @" << c;
 }
 
+void aStar::setWeight(const int x, const int y, float w) {
+  coords c = coords(x, y);
+  setWeight(c, w);
+}
+
+void aStar::setWeight(const point p, float w) {
+  aStar::setWeight(p.pos, w);
+}
+
+void aStar::setWeight(const coords& c, float w) {
+  this->m(c.first, c.second) = w;
+  debug << "Set inaccessible location @" << c;
+}
+
 void aStar::setInaccessible(const int x, const int y) {
   coords c = coords(x, y);
   setInaccessible(c);
@@ -509,7 +526,7 @@ int aStar::runAlgorithm() {
         //   child has height - 1 in which case you cannot use the child...
         //   but this will be handles in child legality step above
         //   calculateCost fnction required here.
-        child.setScores(p.g + COST,
+        child.setScores(p.g + COST * (int)m(child.pos.first, child.pos.second),
                         getHeuristic().distanceOp(child, getDestination()));
 
         debug << "Updated child H : " << child;
@@ -535,11 +552,21 @@ void aStar::printMap() {
 }
 
 void aStar::printMap(bool with_path) {
-  char p;
+  std::string p;
   int val;
   coords c;
 
+  // Print header
+  std::cout << "┌─";
+  for (int i = 0; i < this->sizeM - 1; i++) {
+    std::cout << "─";
+  }
+  std::cout << "┐" << std::endl;
+
+  // Print lines
   for (int i = 0; i < this->sizeM; i++) {
+    std::cout << "|";
+
     for (int j = 0; j < this->sizeN; j++) {
       val = this->m(i,j);
       c = coords(i,j);
@@ -547,16 +574,20 @@ void aStar::printMap(bool with_path) {
       switch (val)
       {
       case INACCESSIBLE:
-        p = '#';
+        p = "█";
         break;
       
       default:
-        p = '.';
+        p = " ";
+        if (val > EIGTH_WEIGHT) p = "¨";
+        if (val > QUARTER_WEIGHT) p = "░";
+        if (val > HALF_WEIGHT) p = "▒";
+        if (val >= MAX_WEIGHT - 1.0f) p = "▓";
         break;
       }
 
       if (origin.pos == c)
-        std::cout << "O";
+        std::cout << "°";
       else if (destination.pos == c)
         std::cout << "X";
       else
@@ -565,7 +596,7 @@ void aStar::printMap(bool with_path) {
         {
           auto pt = std::find(path.begin(), path.end(), c);
           if (pt != path.end())
-            std::cout << "*";
+            std::cout << "·";
           else
             std::cout << p;
         }
@@ -573,8 +604,16 @@ void aStar::printMap(bool with_path) {
           std::cout << p;
       }
     }
-    std::cout << std::endl;
+    std::cout << "|" << std::endl;
   }
+
+  // Print footer
+  std::cout << "└─";
+  for (int i = 0; i < this->sizeM - 1; i++) {
+    std::cout << "─";
+  }
+  std::cout << "┘" << std::endl;
+
 }
 
 #pragma endregion
