@@ -92,7 +92,7 @@ class point {
       }
 
       point& operator= (const point& p) {
-        pos.first = p.pos.first; pos.second = p.pos.first;
+        pos.first = p.pos.first; pos.second = p.pos.second;
         f = p.f; g = p.g; h = p.h;
 
         parent = p.parent;
@@ -114,6 +114,7 @@ class point {
         this->h = h;
         this->f = g + h;
       }
+
 };
 
 bool matchPointCoords(const point& p, const coords& c) { return (p.pos == c); }
@@ -193,6 +194,10 @@ class aStar {
 
         point path_start = point(INEXISTENT, INEXISTENT);
 
+        std::vector<coords> path;
+
+        std::vector<coords> returnPath();
+
     public:
         // Constructor versions
         aStar();
@@ -233,8 +238,9 @@ class aStar {
         int runAlgorithm();
 
         // Result
-        std::vector<coords> returnPath();
         void printMap();
+        void printMap(bool with_path);
+        std::vector<coords> getPath();
 };
 
 // Implementation
@@ -449,10 +455,12 @@ std::vector<point> aStar::generateChildren(point p) {
 }
 
 int aStar::runAlgorithm() {
+
     // Let initial lists be empty
     aStarList emptyO, emptyC;
     swap(open, emptyO);
     swap(open, emptyC);
+    path.clear();
 
     // Put start node on open list - O(1)
     path_start = point(INEXISTENT, INEXISTENT);
@@ -462,8 +470,13 @@ int aStar::runAlgorithm() {
     // Loop until you find the end
     while(!open.empty()) {
 
+      debug << "--------------------A*---------------------" << std::endl;
+
       // Sort the list - (N*logN)
       std::sort(open.begin(), open.end());
+      debug << "Sorted list: " << std::endl;
+      for (auto i : open)
+        std::cout << i;
 
       // Remove from open - O(1)
       auto p = open.front();
@@ -477,6 +490,7 @@ int aStar::runAlgorithm() {
       if (p == destination) {
         debug << "Arrived at destination." << std::endl;
         path_start = p;
+        path = returnPath();
         return EXIT_SUCCESS;
       }
 
@@ -503,12 +517,24 @@ int aStar::runAlgorithm() {
         // Add child to open list
         open.push_back(child);
       }
+
+      debug << "Open list: " << std::endl;
+      for (auto i : open)
+        std::cout << i;
     }
 
     return EXIT_FAILURE;
 }
 
+std::vector<coords> aStar::getPath() {
+  return path;
+}
+
 void aStar::printMap() {
+  aStar::printMap(WITHOUT_PATH);
+}
+
+void aStar::printMap(bool with_path) {
   char p;
   int val;
   coords c;
@@ -534,9 +560,21 @@ void aStar::printMap() {
       else if (destination.pos == c)
         std::cout << "X";
       else
-        std::cout << p;
+      {
+        if (!path.empty() && (with_path != WITHOUT_PATH))
+        {
+          auto pt = std::find(path.begin(), path.end(), c);
+          if (pt != path.end())
+            std::cout << "*";
+          else
+            std::cout << p;
+        }
+        else
+          std::cout << p;
+      }
     }
     std::cout << std::endl;
   }
 }
+
 #pragma endregion
