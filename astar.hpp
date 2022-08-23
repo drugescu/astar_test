@@ -12,11 +12,13 @@ using namespace Eigen;
 
 // Defs and structs
 
+
+typedef std::pair<int,int> coords;
+
+class aStar; // Far declaration
 class point; // Far declaration
 
 typedef std::vector<point> aStarList;
-
-typedef std::pair<int,int> coords;
 
 enum Direction { NORTH = 0, SOUTH, EAST, WEST, NORTH_EAST, SOUTH_EAST, NORTH_WEST, SOUTH_WEST };
 
@@ -42,8 +44,7 @@ std::ostream& operator<< (std::ostream& out, const coords& p) {
   return out;
 }
 
-// Point class
-
+// Interface point
 class point {
     public:
       coords pos;
@@ -115,15 +116,13 @@ class point {
         this->f = g + h;
       }
 
+      // Internal functions
+      std::vector<point> generateChildren(aStar &algo);
+      point getAdjacent(int dir);
+
 };
 
-bool matchPointCoords(const point& p, const coords& c) { return (p.pos == c); }
-
-bool operator< (const point&a, const point& b) {
-  return (a.f < b.f);
-}
-
-// Interface
+// Interface Heuristic
 
 class Heuristic {
     private:
@@ -139,45 +138,7 @@ class Heuristic {
         float distanceOp(const point p1, const point p2);
 };
 
-// Implementation
-
-void Heuristic::setHeuristic(int num) {
-    internalHeuristic = num;
-}
-
-int Heuristic::getHeuristic() { return internalHeuristic; }
-
-float Heuristic::getDelta(const coords& p1, const coords& p2, const int& power) {
-  if (power == IDENTITY)
-    return abs(p1.first - p2.first) + abs(p1.second - p2.second);
-  else if (power == SQUARED)
-    return sqrt(pow(p1.first - p2.first, 2) + pow(p1.second - p2.second, 2));
-  else if (power == MINIMUM)
-    return std::min(abs(p1.first - p2.first), abs(p2.second - p2.second));
-  else
-    return -std::numeric_limits<float>::infinity();
-}
-
-float Heuristic::distanceOp(const point p1, const point p2) {
-    switch (internalHeuristic)
-    {
-    case MANHATTAN_DISTANCE:
-        return getDelta(p1.pos, p2.pos, IDENTITY);
-
-    case EUCLIDEAN_DISTANCE:
-        return getDelta(p1.pos, p2.pos, SQUARED);
-
-    case OCTOGONAL_DISTANCE:
-        return (10.0f) * getDelta(p1.pos, p2.pos, IDENTITY)
-             + (-6.0f) * getDelta(p1.pos, p2.pos, MINIMUM);
-
-    default:
-        return 0.0f;
-        break;
-    }
-}
-
-// Interface
+// Interface aStar
 
 class aStar {
     private:
@@ -235,8 +196,6 @@ class aStar {
         void setWeight(const int x, const int y, float w);
 
         // Algorithm
-        std::vector<point> generateChildren(point p);
-        point getAdjacent(point p, int dir);
         bool isValid(const coords& p);
         int runAlgorithm();
 
@@ -246,7 +205,45 @@ class aStar {
         std::vector<coords> getPath();
 };
 
-// Implementation
+// Implementation Heuristic
+
+void Heuristic::setHeuristic(int num) {
+    internalHeuristic = num;
+}
+
+int Heuristic::getHeuristic() { return internalHeuristic; }
+
+float Heuristic::getDelta(const coords& p1, const coords& p2, const int& power) {
+  if (power == IDENTITY)
+    return abs(p1.first - p2.first) + abs(p1.second - p2.second);
+  else if (power == SQUARED)
+    return sqrt(pow(p1.first - p2.first, 2) + pow(p1.second - p2.second, 2));
+  else if (power == MINIMUM)
+    return std::min(abs(p1.first - p2.first), abs(p2.second - p2.second));
+  else
+    return -std::numeric_limits<float>::infinity();
+}
+
+float Heuristic::distanceOp(const point p1, const point p2) {
+    switch (internalHeuristic)
+    {
+    case MANHATTAN_DISTANCE:
+        return getDelta(p1.pos, p2.pos, IDENTITY);
+
+    case EUCLIDEAN_DISTANCE:
+        return getDelta(p1.pos, p2.pos, SQUARED);
+
+    case OCTOGONAL_DISTANCE:
+        return (10.0f) * getDelta(p1.pos, p2.pos, IDENTITY)
+             + (-6.0f) * getDelta(p1.pos, p2.pos, MINIMUM);
+
+    default:
+        return 0.0f;
+        break;
+    }
+}
+
+// Implementation aStar
 
 #pragma region aStar_constructors
 
@@ -355,7 +352,7 @@ void aStar::setHeuristic() {};
 
 #pragma region Results and Validity
 
-// Result
+// aStar Result
 
 bool aStar::isValid(const coords& p) {
   if (p == coords(INEXISTENT, INEXISTENT))
@@ -388,11 +385,10 @@ std::vector<coords> aStar::returnPath() {
       while(isValid(current_point.parent)) {
         // Find parent
         auto p = find_item(closed, current_point.parent);
-
         debug << "  Found parent : " << *p;
 
         // Insert into final path
-        path.insert(path.begin(), p->pos);
+        path.insert(path.begin(), current_point.parent);
 
         // Look for next parent
         current_point = *p;
@@ -403,6 +399,45 @@ std::vector<coords> aStar::returnPath() {
 }
 
 #pragma endregion
+
+
+// Implementation Point
+
+bool matchPointCoords(const point& p, const coords& c) { return (p.pos == c); }
+
+bool operator< (const point&a, const point& b) {
+  return (a.f < b.f);
+}
+
+point point::getAdjacent(int dir) {
+  switch (dir)
+  {
+    case (NORTH)      : return point(*this, -COST,     0);
+    case (NORTH_WEST) : return point(*this, -COST, -COST);
+    case (NORTH_EAST) : return point(*this, -COST,  COST);
+    case (SOUTH)      : return point(*this,  COST,     0);
+    case (SOUTH_WEST) : return point(*this,  COST, -COST);
+    case (SOUTH_EAST) : return point(*this,  COST,  COST);
+    case (WEST)       : return point(*this,     0, -COST);
+    case (EAST)       : return point(*this,     0,  COST);
+
+    default           : return point();
+  }
+}
+
+std::vector<point> point::generateChildren(aStar &algo) {
+    std::vector<point> children;
+
+    // Check map and see if children are all valid - paths exist
+    for (auto DIR : dirList) {
+      auto a = this->getAdjacent(DIR);
+
+      if (algo.isValid(a.pos))
+        children.push_back(a);
+    }
+
+    return children;
+}
 
 #pragma region Collision Map
 
@@ -441,36 +476,6 @@ void aStar::setInaccessible(const int x, const int y) {
 
 // Algorithm
 
-point aStar::getAdjacent(point p, int dir) {
-  switch (dir)
-  {
-    case (NORTH)      : return point(p, -COST,     0);
-    case (NORTH_WEST) : return point(p, -COST, -COST);
-    case (NORTH_EAST) : return point(p, -COST,  COST);
-    case (SOUTH)      : return point(p,  COST,     0);
-    case (SOUTH_WEST) : return point(p,  COST, -COST);
-    case (SOUTH_EAST) : return point(p,  COST,  COST);
-    case (WEST)       : return point(p,     0, -COST);
-    case (EAST)       : return point(p,     0,  COST);
-
-    default           : return point();
-  }
-}
-
-std::vector<point> aStar::generateChildren(point p) {
-    std::vector<point> children;
-
-    // Check map and see if children are all valid - paths exist
-    for (auto DIR : dirList) {
-      auto a = getAdjacent(p, DIR);
-
-      if (isValid(a.pos))
-        children.push_back(a);
-    }
-
-    return children;
-}
-
 int aStar::runAlgorithm() {
 
     // Let initial lists be empty
@@ -481,8 +486,8 @@ int aStar::runAlgorithm() {
 
     // Put start node on open list - O(1)
     path_start = point(INEXISTENT, INEXISTENT);
-    open.push_back(origin);
-    debug << "Pushed origin : " << origin;
+    open.push_back(this->origin);
+    debug << "Pushed origin : " << this->origin;
 
     // Loop until you find the end
     while(!open.empty()) {
@@ -513,7 +518,7 @@ int aStar::runAlgorithm() {
 
       // Generate children
       // For each child
-      for (auto child : generateChildren(p)) {
+      for (auto child : p.generateChildren(*this)) {
 
         debug << "Generated child : " << child;
 
